@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Primer Netflix - Gestión de Películas</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #141414;
+            color: #fff;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: #e50914;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .movie-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .movie-card {
+            background: #222;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .movie-card img {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        
+        .movie-card h3 {
+            margin: 10px 0 5px;
+            font-size: 14px;
+        }
+        
+        .movie-card p {
+            margin: 0;
+            color: #ccc;
+            font-size: 12px;
+        }
+        
+        .button {
+            background: #e50914;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 12px;
+        }
+        
+        .button:hover {
+            background: #b8070f;
+        }
+        
+        .button.secondary {
+            background: #333;
+        }
+        
+        .button.secondary:hover {
+            background: #555;
+        }
+        
+        .form-container {
+            background: #222;
+            padding: 20px;
+            border-radius: 8px;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            background: #333;
+            color: #fff;
+            font-size: 14px;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            background: #444;
+        }
+        
+        .movie-detail {
+            background: #222;
+            padding: 20px;
+            border-radius: 8px;
+            max-width: 500px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        
+        .movie-detail img {
+            width: 200px;
+            height: 300px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .actions {
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .main-actions {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Mi Primer Netflix</h1>
+        <div id="main"></div>
+    </div>
+
+    <script>
+        // MODEL - Data Management
+        class MovieModel {
+            constructor() {
+                this.storageKey = 'mis_peliculas';
+                this.defaultMovies = [
+                    {
+                        titulo: "El Padrino",
+                        director: "Francis Ford Coppola",
+                        miniatura: "https://via.placeholder.com/200x300/333/fff?text=El+Padrino"
+                    },
+                    {
+                        titulo: "Pulp Fiction",
+                        director: "Quentin Tarantino",
+                        miniatura: "https://via.placeholder.com/200x300/333/fff?text=Pulp+Fiction"
+                    },
+                    {
+                        titulo: "El Caballero Oscuro",
+                        director: "Christopher Nolan",
+                        miniatura: "https://via.placeholder.com/200x300/333/fff?text=Batman"
+                    },
+                    {
+                        titulo: "Forrest Gump",
+                        director: "Robert Zemeckis",
+                        miniatura: "https://via.placeholder.com/200x300/333/fff?text=Forrest+Gump"
+                    },
+                    {
+                        titulo: "Matrix",
+                        director: "Hermanos Wachowski",
+                        miniatura: "https://via.placeholder.com/200x300/333/fff?text=Matrix"
+                    }
+                ];
+                this.init();
+            }
+
+            init() {
+                if (!localStorage.getItem(this.storageKey)) {
+                    this.saveMovies(this.defaultMovies);
+                }
+            }
+
+            getMovies() {
+                return JSON.parse(localStorage.getItem(this.storageKey) || '[]');
+            }
+
+            saveMovies(movies) {
+                localStorage.setItem(this.storageKey, JSON.stringify(movies));
+            }
+
+            addMovie(movie) {
+                const movies = this.getMovies();
+                movies.push(movie);
+                this.saveMovies(movies);
+            }
+
+            updateMovie(index, movie) {
+                const movies = this.getMovies();
+                if (index >= 0 && index < movies.length) {
+                    movies[index] = movie;
+                    this.saveMovies(movies);
+                }
+            }
+
+            deleteMovie(index) {
+                const movies = this.getMovies();
+                if (index >= 0 && index < movies.length) {
+                    movies.splice(index, 1);
+                    this.saveMovies(movies);
+                }
+            }
+
+            resetMovies() {
+                this.saveMovies(this.defaultMovies);
+            }
+        }
+
+        // VIEW - UI Rendering
+        class MovieView {
+            indexView(peliculas) {
+                return `
+                    <div class="main-actions">
+                        <button class="button new">Añadir Película</button>
+                        <button class="button secondary reset">Reset Base de Datos</button>
+                    </div>
+                    <div class="movie-grid">
+                        ${peliculas.map((pelicula, i) => `
+                            <div class="movie-card">
+                                <img src="${pelicula.miniatura}" alt="${pelicula.titulo}" onerror="this.src='https://via.placeholder.com/200x300/333/fff?text=Sin+Imagen'">
+                                <h3>${pelicula.titulo}</h3>
+                                <p>Director: ${pelicula.director}</p>
+                                <div class="actions">
+                                    <button class="button show" data-my-id="${i}">Ver</button>
+                                    <button class="button edit" data-my-id="${i}">Editar</button>
+                                    <button class="button secondary delete" data-my-id="${i}">Borrar</button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+
+            editView(i, pelicula) {
+                return `
+                    <div class="form-container">
+                        <h2>Editar Película</h2>
+                        <form>
+                            <div class="form-group">
+                                <label for="titulo">Título:</label>
+                                <input type="text" id="titulo" value="${pelicula.titulo}" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="director">Director:</label>
+                                <input type="text" id="director" value="${pelicula.director}" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="miniatura">URL Miniatura:</label>
+                                <input type="url" id="miniatura" value="${pelicula.miniatura}" required>
+                            </div>
+                            <div class="actions">
+                                <button type="button" class="button update" data-my-id="${i}">Actualizar</button>
+                                <button type="button" class="button secondary index">Volver</button>
+                            </div>
+                        </form>
+                    </div>
+                `;
+            }
+
+            showView(pelicula) {
+                return `
+                    <div class="movie-detail">
+                        <img src="${pelicula.miniatura}" alt="${pelicula.titulo}" onerror="this.src='https://via.placeholder.com/200x300/333/fff?text=Sin+Imagen'">
+                        <h2>${pelicula.titulo}</h2>
+                        <p><strong>Director:</strong> ${pelicula.director}</p>
+                        <div class="actions">
+                            <button class="button secondary index">Volver</button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            newView() {
+                return `
+                    <div class="form-container">
+                        <h2>Añadir Nueva Película</h2>
+                        <form>
+                            <div class="form-group">
+                                <label for="titulo">Título:</label>
+                                <input type="text" id="titulo" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="director">Director:</label>
+                                <input type="text" id="director" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="miniatura">URL Miniatura:</label>
+                                <input type="url" id="miniatura" placeholder="https://example.com/poster.jpg" required>
+                            </div>
+                            <div class="actions">
+                                <button type="button" class="button create">Crear</button>
+                                <button type="button" class="button secondary index">Volver</button>
+                            </div>
+                        </form>
+                    </div>
+                `;
+            }
+        }
+
+        // CONTROLLER - Business Logic
+        class MovieController {
+            constructor() {
+                this.model = new MovieModel();
+                this.view = new MovieView();
+                this.mainElement = document.getElementById('main');
+                this.setupRouter();
+                this.indexContr(); // Start with main view
+            }
+
+            indexContr() {
+                const peliculas = this.model.getMovies();
+                this.mainElement.innerHTML = this.view.indexView(peliculas);
+            }
+
+            editContr(i) {
+                const peliculas = this.model.getMovies();
+                const pelicula = peliculas[i];
+                if (pelicula) {
+                    this.mainElement.innerHTML = this.view.editView(i, pelicula);
+                }
+            }
+
+            updateContr(i) {
+                const titulo = document.getElementById('titulo').value.trim();
+                const director = document.getElementById('director').value.trim();
+                const miniatura = document.getElementById('miniatura').value.trim();
+
+                if (titulo && director && miniatura) {
+                    this.model.updateMovie(i, { titulo, director, miniatura });
+                    this.indexContr();
+                } else {
+                    alert('Por favor, completa todos los campos.');
+                }
+            }
+
+            showContr(i) {
+                const peliculas = this.model.getMovies();
+                const pelicula = peliculas[i];
+                if (pelicula) {
+                    this.mainElement.innerHTML = this.view.showView(pelicula);
+                }
+            }
+
+            newContr() {
+                this.mainElement.innerHTML = this.view.newView();
+            }
+
+            createContr() {
+                const titulo = document.getElementById('titulo').value.trim();
+                const director = document.getElementById('director').value.trim();
+                const miniatura = document.getElementById('miniatura').value.trim();
+
+                if (titulo && director && miniatura) {
+                    this.model.addMovie({ titulo, director, miniatura });
+                    this.indexContr();
+                } else {
+                    alert('Por favor, completa todos los campos.');
+                }
+            }
+
+            deleteContr(i) {
+                const peliculas = this.model.getMovies();
+                const pelicula = peliculas[i];
+                if (pelicula && confirm(`¿Estás seguro de que deseas eliminar "${pelicula.titulo}"?`)) {
+                    this.model.deleteMovie(i);
+                    this.indexContr();
+                }
+            }
+
+            resetContr() {
+                if (confirm('¿Estás seguro de que deseas restaurar la base de datos al estado original? Se perderán todos los cambios.')) {
+                    this.model.resetMovies();
+                    this.indexContr();
+                }
+            }
+
+            setupRouter() {
+                this.mainElement.addEventListener('click', (e) => {
+                    const target = e.target;
+                    const id = target.getAttribute('data-my-id');
+
+                    if (target.classList.contains('index')) {
+                        this.indexContr();
+                    } else if (target.classList.contains('edit')) {
+                        this.editContr(parseInt(id));
+                    } else if (target.classList.contains('update')) {
+                        this.updateContr(parseInt(id));
+                    } else if (target.classList.contains('show')) {
+                        this.showContr(parseInt(id));
+                    } else if (target.classList.contains('new')) {
+                        this.newContr();
+                    } else if (target.classList.contains('create')) {
+                        this.createContr();
+                    } else if (target.classList.contains('delete')) {
+                        this.deleteContr(parseInt(id));
+                    } else if (target.classList.contains('reset')) {
+                        this.resetContr();
+                    }
+                });
+            }
+        }
+
+        // Initialize the application when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            new MovieController();
+        });
+    </script>
+</body>
+</html>
